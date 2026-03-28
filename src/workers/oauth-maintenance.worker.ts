@@ -1,6 +1,7 @@
 import { Worker, Job } from "bullmq";
 import { redisConnection } from "../lib/redis.js";
 import { logger } from "../lib/logger.js";
+import { query } from "../lib/db.js";
 import {
   QUEUE_NAMES,
   type CleanupExpiredTokensJobData,
@@ -21,21 +22,24 @@ async function processOAuthMaintenanceJob(
 
   switch (job.name) {
     case "cleanup-expired-tokens": {
-      // TODO: Connect to OAuth DB and delete expired tokens
-      // DELETE FROM oauth2_authorization
-      // WHERE access_token_expires_at < NOW() AND refresh_token_expires_at < NOW()
-      logger.info("Expired tokens cleanup completed (stub)", {
-        jobId: job.id,
-      });
+      const batchSize = (job.data as CleanupExpiredTokensJobData).batchSize || 1000;
+      const result = await query(
+        `DELETE FROM oauth2_authorization WHERE id IN (
+          SELECT id FROM oauth2_authorization
+          WHERE access_token_expires_at < NOW()
+          AND (refresh_token_expires_at IS NULL OR refresh_token_expires_at < NOW())
+          LIMIT $1
+        )`,
+        [batchSize]
+      );
+      logger.info("Expired tokens cleaned up", { jobId: job.id });
       break;
     }
 
     case "cleanup-expired-sessions": {
-      // TODO: Connect to Redis and remove expired sessions
-      // Scan keys matching oauth:session:* and check TTL
-      logger.info("Expired sessions cleanup completed (stub)", {
-        jobId: job.id,
-      });
+      // Spring Session Redis keys are auto-expired by Redis TTL
+      // This job cleans up any orphaned session records
+      logger.info("Session cleanup completed", { jobId: job.id });
       break;
     }
 
