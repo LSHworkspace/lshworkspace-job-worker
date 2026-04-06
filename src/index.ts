@@ -1,6 +1,4 @@
 import { logger } from "./lib/logger.js";
-import { createEmailWorker } from "./workers/email.worker.js";
-import { createOAuthMaintenanceWorker } from "./workers/oauth-maintenance.worker.js";
 import { createBlogWorker } from "./workers/blog.worker.js";
 import { createWebhookWorker } from "./workers/webhook.worker.js";
 import { registerScheduledJobs } from "./schedulers/index.js";
@@ -13,8 +11,6 @@ async function main() {
   logger.info("Starting LSHworkspace Job Worker...");
 
   // Register all workers
-  workers.push(createEmailWorker());
-  workers.push(createOAuthMaintenanceWorker());
   workers.push(createBlogWorker());
   workers.push(createWebhookWorker());
 
